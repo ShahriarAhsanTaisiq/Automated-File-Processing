@@ -1,5 +1,6 @@
 import ftplib
 import os
+import xml.etree.ElementTree as ET
 
 # ftp info
 FTP_HOST = "localhost"
@@ -30,3 +31,23 @@ def download_files():
             local_final_path = os.path.join(LOCAL_DIR, filename)
             os.rename(local_temp_path, local_final_path)
     ftp.quit()
+
+
+# Function for process the file
+def process_file(filepath):
+    tree = ET.parse(filepath)
+    root = tree.getroot()
+
+    data_dict = {}
+    for elements in root.iter():
+        data_dict[elements.tag] = elements.text
+
+    print(data_dict)
+    move_to_trash(filepath)
+
+
+# Function for move processed file to trash
+def move_to_trash(filepath):
+    filename = os.path.basename(filepath)
+    trash_path = os.path.join(TRASH_DIR, filename)
+    os.rename(filepath, trash_path)
