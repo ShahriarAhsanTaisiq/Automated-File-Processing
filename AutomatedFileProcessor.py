@@ -1,6 +1,10 @@
 import ftplib
 import os
+import time
 import xml.etree.ElementTree as ET
+
+from watchdog.events import FileSystemEventHandler, FileSystemEvent
+from watchdog.observers import Observer
 
 # ftp info
 FTP_HOST = "localhost"
@@ -51,3 +55,25 @@ def move_to_trash(filepath):
     filename = os.path.basename(filepath)
     trash_path = os.path.join(TRASH_DIR, filename)
     os.rename(filepath, trash_path)
+
+
+# Class to handle file system events
+class FileHandler(FileSystemEventHandler):
+    def on_created(self, event):
+        if event.is_directory:
+            return
+        process_file(event.src_path)
+
+
+# Function for monitoring local folder
+def monitor_folder():
+    event_handler = FileHandler()
+    observer = Observer()
+    observer.schedule(event_handler, LOCAL_DIR, recursive=False)
+    observer.start()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        observer.stop()
+    observer.join()
