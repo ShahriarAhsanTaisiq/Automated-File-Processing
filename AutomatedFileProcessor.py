@@ -26,6 +26,9 @@ for dir_path in [TEMP_DIR, LOCAL_DIR, TRASH_DIR]:
         os.makedirs(dir_path)
         logging.info(f"Created directory {dir_path}")
 
+# set to keep track of processed files
+processed_files = set()
+
 
 # function for download files
 def download_files():
@@ -38,14 +41,23 @@ def download_files():
         filenames = ftp.nlst('*.xml')
         for filename in filenames:
             local_temp_path = os.path.join(TEMP_DIR, filename)
-            if not os.path.exists(local_temp_path):
-                with open(local_temp_path, 'wb') as f:
-                    ftp.retrbinary('RETR ' + filename, f.write)
-                logging.info(f"Downloaded {filename} to TEMP_DIR at {local_temp_path}")
+            if filename not in processed_files:
+                if not os.path.exists(local_temp_path):
+                    with open(local_temp_path, 'wb') as f:
+                        ftp.retrbinary('RETR ' + filename, f.write)
+                    logging.info(f"Downloaded {filename} to TEMP_DIR at {local_temp_path}")
+                    time.sleep(5)  # Adjusted sleep time after download
 
-                local_final_path = os.path.join(LOCAL_DIR, filename)
-                os.rename(local_temp_path, local_final_path)
-                logging.info(f"Moved {filename} from TEMP_DIR to LOCAL_DIR at {local_final_path}")
+                    local_final_path = os.path.join(LOCAL_DIR, filename)
+                    if os.path.exists(local_temp_path):  # Check if file exists in TEMP_DIR
+                        os.rename(local_temp_path, local_final_path)
+                        logging.info(f"Moved {filename} from TEMP_DIR to LOCAL_DIR at {local_final_path}")
+                    else:
+                        logging.error(f"{local_temp_path} does not exist. Failed to move to {LOCAL_DIR}")
+                else:
+                    logging.info(f"File {filename} already exists in LOCAL_DIR, skipping download.")
+            else:
+                logging.info(f"File {filename} already processed, skipping download.")
 
         ftp.quit()
 
@@ -64,6 +76,7 @@ def move_to_trash(filepath):
             os.makedirs(TRASH_DIR, exist_ok=True)
             os.rename(filepath, trash_path)
             logging.info(f"Moved {filename} to trash at {trash_path}")
+            processed_files.add(filename)  # Add to set of processed files
         else:
             logging.warning(f"File {filepath} does not exist or could not be processed.")
     except Exception as e:
@@ -74,6 +87,7 @@ def move_to_trash(filepath):
 class FileHandler(FileSystemEventHandler):
     def on_created(self, event):
         if not event.is_directory:
+            logging.info(f"Detected new file {event.src_path} in LOCAL_DIR")
             time.sleep(5)
             process_file(event.src_path)
 
@@ -81,6 +95,10 @@ class FileHandler(FileSystemEventHandler):
 # function for process a file
 def process_file(filepath):
     try:
+        if os.path.basename(filepath) in processed_files:
+            logging.info(f"File {filepath} already processed, skipping.")
+            return
+
         tree = ET.parse(filepath)
         root = tree.getroot()
 
@@ -123,8 +141,8 @@ def monitor_folder():
 
     try:
         while True:
-            # check every 60 second for new files
-            time.sleep(60)
+            # check every 10 second for new files
+            time.sleep(10)
     except KeyboardInterrupt:
         observer.stop()
         logging.info("Stopping file monitoring.")
@@ -141,11 +159,12 @@ if __name__ == "__main__":
     # download process in a separate thread to continuously check for new files
     from threading import Thread
 
+
     def download_thread():
         while True:
             download_files()
             # check every 10 seconds for new files
-            time.sleep(60)
+            time.sleep(10)
 
 
     Thread(target=download_thread, daemon=True).start()
