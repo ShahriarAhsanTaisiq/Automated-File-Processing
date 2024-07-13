@@ -68,6 +68,7 @@ def move_to_trash(filepath):
 class FileHandler(FileSystemEventHandler):
     def on_created(self, event):
         if not event.is_directory:
+            time.sleep(5)
             process_file(event.src_path)
 
 
