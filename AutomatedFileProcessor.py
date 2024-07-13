@@ -1,6 +1,8 @@
 import ftplib
 import os
 import logging
+from xml.etree import ElementTree as ET
+from watchdog.events import FileSystemEventHandler
 
 # logging setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -14,6 +16,7 @@ FTP_PORT = int(os.getenv("FTP_PORT", 21))
 TEMP_DIR = "temp"
 LOCAL_DIR = "local"
 TRASH_DIR = "trash"
+
 
 # function for download files
 def download_files():
@@ -40,3 +43,60 @@ def download_files():
         logging.error(f"Error during file download or processing: {str(e)}")
         if 'ftp' in locals():
             ftp.quit()
+
+
+# function for move a processed file to trash
+def move_to_trash(filepath):
+    try:
+        if os.path.exists(filepath):
+            filename = os.path.basename(filepath)
+            trash_path = os.path.join(TRASH_DIR, filename)
+            os.makedirs(TRASH_DIR, exist_ok=True)
+            os.rename(filepath, trash_path)
+            logging.info(f"Moved {filename} to trash at {trash_path}")
+        else:
+            logging.warning(f"File {filepath} does not exist or could not be processed.")
+    except Exception as e:
+        logging.error(f"Error moving {filepath} to trash: {str(e)}")
+
+
+# class for handle file
+class FileHandler(FileSystemEventHandler):
+    def on_created(self, event):
+        if not event.is_directory:
+            process_file(event.src_path)
+
+
+# function for process a file
+def process_file(filepath):
+    try:
+        tree = ET.parse(filepath)
+        root = tree.getroot()
+
+        data_dict = {}
+
+        def parse_element(element):
+            if element.tag not in data_dict:
+                data_dict[element.tag] = []
+
+            if element.text is not None:
+                try:
+                    value = float(element.text)
+                except ValueError:
+                    value = element.text
+                data_dict[element.tag].append(value)
+
+            for child in element:
+                parse_element(child)
+
+        parse_element(root)
+
+        if data_dict:
+            logging.info(f"Extracted data from {filepath}: {data_dict}")
+        else:
+            logging.info(f"No data extracted from {filepath}")
+
+        move_to_trash(filepath)
+
+    except Exception as e:
+        logging.error(f"Error processing file {filepath}: {str(e)}")
