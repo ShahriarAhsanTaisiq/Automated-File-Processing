@@ -20,6 +20,12 @@ TEMP_DIR = "temp"
 LOCAL_DIR = "local"
 TRASH_DIR = "trash"
 
+# check necessary directories exist
+for dir_path in [TEMP_DIR, LOCAL_DIR, TRASH_DIR]:
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+        logging.info(f"Created directory {dir_path}")
+
 
 # function for download files
 def download_files():
