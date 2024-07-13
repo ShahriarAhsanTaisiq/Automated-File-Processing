@@ -122,3 +122,25 @@ def monitor_folder():
         logging.info("Stopping file monitoring.")
 
     observer.join()
+
+
+if __name__ == "__main__":
+    # check if directories are exist
+    for dir_path in [TEMP_DIR, LOCAL_DIR, TRASH_DIR]:
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+
+    # download process in a separate thread to continuously check for new files
+    from threading import Thread
+
+    def download_thread():
+        while True:
+            download_files()
+            # check every 10 seconds for new files
+            time.sleep(10)
+
+
+    Thread(target=download_thread, daemon=True).start()
+
+    # monitor local directory for new files
+    monitor_folder()
