@@ -1,8 +1,11 @@
 import ftplib
 import os
 import logging
+import time
 from xml.etree import ElementTree as ET
+
 from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 
 # logging setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -100,3 +103,22 @@ def process_file(filepath):
 
     except Exception as e:
         logging.error(f"Error processing file {filepath}: {str(e)}")
+
+
+# function for monitor local folder continuously
+def monitor_folder():
+    event_handler = FileHandler()
+    observer = Observer()
+    observer.schedule(event_handler, LOCAL_DIR, recursive=False)
+    observer.start()
+    logging.info(f"Monitoring directory {LOCAL_DIR} for new files...")
+
+    try:
+        while True:
+            # check every 2 second for new files
+            time.sleep(2)
+    except KeyboardInterrupt:
+        observer.stop()
+        logging.info("Stopping file monitoring.")
+
+    observer.join()
