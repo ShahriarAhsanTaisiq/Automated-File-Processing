@@ -15,7 +15,6 @@ TEMP_DIR = "temp"
 LOCAL_DIR = "local"
 TRASH_DIR = "trash"
 
-
 # function for download files
 def download_files():
     try:
