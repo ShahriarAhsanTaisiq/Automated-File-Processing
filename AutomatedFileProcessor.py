@@ -46,8 +46,7 @@ def download_files():
                     with open(local_temp_path, 'wb') as f:
                         ftp.retrbinary('RETR ' + filename, f.write)
                     logging.info(f"Downloaded {filename} to TEMP_DIR at {local_temp_path}")
-                    time.sleep(5)  # Adjusted sleep time after download
-
+                    time.sleep(5)
                     local_final_path = os.path.join(LOCAL_DIR, filename)
                     if os.path.exists(local_temp_path):  # Check if file exists in TEMP_DIR
                         os.rename(local_temp_path, local_final_path)
@@ -88,7 +87,7 @@ class FileHandler(FileSystemEventHandler):
     def on_created(self, event):
         if not event.is_directory:
             logging.info(f"Detected new file {event.src_path} in LOCAL_DIR")
-            time.sleep(5)
+            time.sleep(3)
             process_file(event.src_path)
 
 
@@ -142,7 +141,7 @@ def monitor_folder():
     try:
         while True:
             # check every 10 second for new files
-            time.sleep(10)
+            time.sleep(5)
     except KeyboardInterrupt:
         observer.stop()
         logging.info("Stopping file monitoring.")
@@ -164,7 +163,7 @@ if __name__ == "__main__":
         while True:
             download_files()
             # check every 10 seconds for new files
-            time.sleep(10)
+            time.sleep(5)
 
 
     Thread(target=download_thread, daemon=True).start()
