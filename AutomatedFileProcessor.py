@@ -35,10 +35,11 @@ def download_files():
             if not os.path.exists(local_temp_path):
                 with open(local_temp_path, 'wb') as f:
                     ftp.retrbinary('RETR ' + filename, f.write)
+                logging.info(f"Downloaded {filename} to TEMP_DIR at {local_temp_path}")
 
                 local_final_path = os.path.join(LOCAL_DIR, filename)
                 os.rename(local_temp_path, local_final_path)
-                logging.info(f"Downloaded {filename} to {LOCAL_DIR}")
+                logging.info(f"Moved {filename} from TEMP_DIR to LOCAL_DIR at {local_final_path}")
 
         ftp.quit()
 
@@ -115,8 +116,8 @@ def monitor_folder():
 
     try:
         while True:
-            # check every 2 second for new files
-            time.sleep(2)
+            # check every 60 second for new files
+            time.sleep(60)
     except KeyboardInterrupt:
         observer.stop()
         logging.info("Stopping file monitoring.")
@@ -137,7 +138,7 @@ if __name__ == "__main__":
         while True:
             download_files()
             # check every 10 seconds for new files
-            time.sleep(10)
+            time.sleep(60)
 
 
     Thread(target=download_thread, daemon=True).start()
